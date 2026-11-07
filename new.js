@@ -1,9 +1,6 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
-// true only on mouse devices (laptops/desktops), false on phones and tablets
-const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-
 const nav = $("#nav");
 const burger = $("#burger");
 const menu = $("#menu");
@@ -12,33 +9,27 @@ const toTop = $("#toTop");
 const hero = $(".hero");
 const timeline = $(".timeline");
 
-// Preloader: hides when the page loads, or after 2.5s at most
-const preloader = $("#preloader");
-const hidePreloader = () => preloader.classList.add("hide");
-window.addEventListener("load", () => setTimeout(hidePreloader, 700));
-setTimeout(hidePreloader, 2500);
+// Preloader
+window.addEventListener("load", () => {
+  setTimeout(() => $("#preloader").classList.add("hide"), 900);
+});
 
 // Scroll: navbar, progress bar, back-to-top, hero parallax, timeline fill
-function onScroll() {
+window.addEventListener("scroll", () => {
   nav.classList.toggle("scrolled", scrollY > 40);
 
   const h = document.documentElement.scrollHeight - innerHeight;
-  progress.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + "%";
+  progress.style.width = (scrollY / h) * 100 + "%";
   toTop.classList.toggle("show", scrollY > 600);
 
-  // parallax only on large screens
-  if (innerWidth > 820 && scrollY < innerHeight) {
+  if (scrollY < innerHeight) {
     hero.style.backgroundPositionY = `calc(50% + ${scrollY * 0.25}px)`;
   }
 
   const r = timeline.getBoundingClientRect();
   const p = Math.min(1, Math.max(0, (innerHeight * 0.6 - r.top) / r.height));
   timeline.style.setProperty("--fill", p * 100 + "%");
-}
-window.addEventListener("scroll", onScroll, { passive: true });
-window.addEventListener("resize", onScroll);
-onScroll();
-
+});
 toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 
 // Mobile menu
@@ -46,9 +37,6 @@ burger.addEventListener("click", () => menu.classList.toggle("open"));
 menu.querySelectorAll("a").forEach((a) =>
   a.addEventListener("click", () => menu.classList.remove("open"))
 );
-document.addEventListener("click", (e) => {
-  if (!nav.contains(e.target)) menu.classList.remove("open");
-});
 
 // Scroll reveal
 const revealObserver = new IntersectionObserver(
@@ -60,7 +48,7 @@ const revealObserver = new IntersectionObserver(
       }
     });
   },
-  { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+  { threshold: 0.15 }
 );
 $$(".reveal").forEach((el) => revealObserver.observe(el));
 
@@ -85,6 +73,18 @@ const counterObserver = new IntersectionObserver(
 );
 $$("[data-count]").forEach((el) => counterObserver.observe(el));
 
+// Cursor glow (smooth follow)
+const glow = $("#glow");
+let gx = 0, gy = 0, mx = 0, my = 0;
+addEventListener("mousemove", (e) => { mx = e.clientX; my = e.clientY; });
+(function follow() {
+  gx += (mx - gx) * 0.12;
+  gy += (my - gy) * 0.12;
+  glow.style.left = gx + "px";
+  glow.style.top = gy + "px";
+  requestAnimationFrame(follow);
+})();
+
 // Typing roles in hero (edit the words here)
 const roles = ["Entrepreneur", "Content Creator", "Chairman, ST Group", "Mentor", "Fitness Enthusiast"];
 const typed = $("#typed");
@@ -107,42 +107,27 @@ $$(".tab").forEach((tab) => {
   });
 });
 
-// Mouse-only effects (skipped on phones and tablets)
-if (canHover) {
-  // Cursor glow (smooth follow)
-  const glow = $("#glow");
-  let gx = 0, gy = 0, mx = 0, my = 0;
-  addEventListener("mousemove", (e) => { mx = e.clientX; my = e.clientY; });
-  (function follow() {
-    gx += (mx - gx) * 0.12;
-    gy += (my - gy) * 0.12;
-    glow.style.left = gx + "px";
-    glow.style.top = gy + "px";
-    requestAnimationFrame(follow);
-  })();
-
-  // 3D tilt on cards and awards
-  $$(".card, .award").forEach((el) => {
-    el.addEventListener("mousemove", (e) => {
-      const r = el.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
-      el.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 10}deg) translateY(-6px)`;
-    });
-    el.addEventListener("mouseleave", () => (el.style.transform = ""));
+// 3D tilt on cards and awards
+$$(".card, .award").forEach((el) => {
+  el.addEventListener("mousemove", (e) => {
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 10}deg) translateY(-6px)`;
   });
+  el.addEventListener("mouseleave", () => (el.style.transform = ""));
+});
 
-  // Magnetic buttons
-  $$(".btn, .btn-small").forEach((b) => {
-    b.addEventListener("mousemove", (e) => {
-      const r = b.getBoundingClientRect();
-      b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.25}px, ${(e.clientY - r.top - r.height / 2) * 0.25}px)`;
-    });
-    b.addEventListener("mouseleave", () => (b.style.transform = ""));
+// Magnetic buttons
+$$(".btn, .btn-small").forEach((b) => {
+  b.addEventListener("mousemove", (e) => {
+    const r = b.getBoundingClientRect();
+    b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.25}px, ${(e.clientY - r.top - r.height / 2) * 0.25}px)`;
   });
-}
+  b.addEventListener("mouseleave", () => (b.style.transform = ""));
+});
 
-// Lightbox (tap/click any award or photo to zoom)
+// Lightbox (click any award or photo to zoom)
 const lb = $("#lightbox");
 const lbImg = lb.querySelector("img");
 $$(".award img, .award-photos img, .card-img").forEach((img) => {
